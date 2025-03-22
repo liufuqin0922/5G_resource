@@ -9,6 +9,26 @@ from django.urls import reverse_lazy
 from .models import User, Resource5G
 from django.contrib.auth import logout
 from django.shortcuts import redirect
+from django.views.generic import TemplateView, View
+from django.contrib.auth.mixins import LoginRequiredMixin
+from django import forms
+import pandas as pd
+from django.http import HttpResponse
+from django.contrib import messages
+from .resources import Resource5GResource
+from tablib import Dataset
+
+from django.shortcuts import render, redirect, get_object_or_404
+from django.contrib.auth import login, authenticate, update_session_auth_hash
+from django.contrib.auth.decorators import login_required
+from django.contrib.auth.forms import AuthenticationForm, PasswordChangeForm
+from django.views.generic.edit import CreateView, UpdateView, DeleteView
+from django.views.generic.list import ListView
+from django.views.generic.detail import DetailView
+from django.urls import reverse_lazy
+from .models import User, Resource5G
+from django.contrib.auth import logout
+from django.shortcuts import redirect
 from django.views.generic import TemplateView
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django import forms
@@ -143,3 +163,67 @@ def change_password(request):
     else:
         form = PasswordChangeForm(request.user)
     return render(request, 'core/change_password.html', {'form': form})
+
+class ResourceExportView(LoginRequiredMixin, View):
+    """资源导出视图"""
+    
+    def get(self, request, *args, **kwargs):
+        # 获取要导出的资源
+        if request.user.is_staff:
+            queryset = Resource5G.objects.all()
+        else:
+            queryset = Resource5G.objects.filter(user=request.user)
+            
+        # 创建资源导出器
+        resource = Resource5GResource()
+        dataset = resource.export(queryset)
+        
+        # 根据请求的格式返回响应
+        fmt = request.GET.get("format", "xlsx")
+        
+        if fmt == "xlsx":
+            response = HttpResponse(content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+            response["Content-Disposition"] = "attachment; filename="resources.xlsx""
+            response.content = dataset.export("xlsx")
+            return response
+        
+        # 默认返回Excel格式
+        response = HttpResponse(content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+        response["Content-Disposition"] = "attachment; filename="resources.xlsx""
+        response.content = dataset.export("xlsx")
+        return response
+class ResourceImportView(LoginRequiredMixin, View):
+    """资源导入视图"""
+    
+    def get(self, request, *args, **kwargs):
+        return render(request, "core/resource_import.html")
+    
+    def post(self, request, *args, **kwargs):
+        if not request.user.is_staff:
+            messages.error(request, "只有管理员才能导入资源")
+            return redirect("resource_list")
+            
+        resource = Resource5GResource()
+        dataset = Dataset()
+        
+        if "import_file" in request.FILES:
+            import_file = request.FILES["import_file"]
+            
+            # 检查文件格式
+            if import_file.name.endswith(".xlsx"):
+                dataset.load(import_file.read(), "xlsx")
+            else:
+                messages.error(request, "只支持.xlsx格式的文件")
+                return redirect("resource_import")
+                
+            # 导入数据
+            result = resource.import_data(dataset, dry_run=True)
+            
+            if not result.has_errors():
+                resource.import_data(dataset, dry_run=False)
+                messages.success(request, "资源导入成功")
+                return redirect("resource_list")
+            else:
+                messages.error(request, "导入失败，请检查数据格式")
+        
+        return redirect("resource_import")

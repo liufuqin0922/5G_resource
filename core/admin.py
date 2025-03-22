@@ -1,6 +1,12 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
 from .models import User, Resource5G
+from import_export.admin import ImportExportModelAdmin
+from .resources import Resource5GResource
+
+from django.contrib import admin
+from django.contrib.auth.admin import UserAdmin
+from .models import User, Resource5G
 
 @admin.register(User)
 class CustomUserAdmin(UserAdmin):
@@ -26,7 +32,8 @@ class CustomUserAdmin(UserAdmin):
     )
 
 @admin.register(Resource5G)
-class Resource5GAdmin(admin.ModelAdmin):
+class Resource5GAdmin(ImportExportModelAdmin):
+    resource_class = Resource5GResource
     list_display = ('name', 'resource_type', 'location', 'quantity', 'status', 'user', 'created_at')
     list_filter = ('resource_type', 'status', 'user')
     search_fields = ('name', 'description', 'location')

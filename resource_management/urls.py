@@ -20,6 +20,7 @@ from core.views import (
     RegisterView, login_view, dashboard, LogoutView,
     ResourceListView, ResourceCreateView, ResourceUpdateView,
     ResourceDeleteView, ResourceDetailView, ProfileUpdateView,
+    change_password, ResourceExportView, ResourceImportView
     change_password
 )
 
@@ -37,6 +38,10 @@ urlpatterns = [
     path('resources/<int:pk>/', ResourceDetailView.as_view(), name='resource_detail'),
     path('resources/<int:pk>/edit/', ResourceUpdateView.as_view(), name='resource_update'),
     path('resources/<int:pk>/delete/', ResourceDeleteView.as_view(), name='resource_delete'),
+    
+    # Resource Import/Export URLs
+    path("resources/export/", ResourceExportView.as_view(), name="resource_export"),
+    path("resources/import/", ResourceImportView.as_view(), name="resource_import"),
     
     # Profile Management URLs
     path('profile/', ProfileUpdateView.as_view(), name='profile_update'),
