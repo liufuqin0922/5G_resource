@@ -1,0 +1,86 @@
+{% extends 'core/base.html' %}
+{% load widget_tweaks %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header">
+                    <h3>{% if object %}编辑资源{% else %}添加新资源{% endif %}</h3>
+                </div>
+                <div class="card-body">
+                    <form method="post">
+                        {% csrf_token %}
+                        
+                        <div class="mb-3">
+                            <label for="{{ form.name.id_for_label }}" class="form-label">资源名称</label>
+                            {{ form.name|add_class:"form-control" }}
+                            {% if form.name.errors %}
+                            <div class="text-danger">
+                                {{ form.name.errors }}
+                            </div>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="{{ form.resource_type.id_for_label }}" class="form-label">资源类型</label>
+                            {{ form.resource_type|add_class:"form-select" }}
+                            {% if form.resource_type.errors %}
+                            <div class="text-danger">
+                                {{ form.resource_type.errors }}
+                            </div>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="{{ form.description.id_for_label }}" class="form-label">资源描述</label>
+                            {{ form.description|add_class:"form-control" }}
+                            {% if form.description.errors %}
+                            <div class="text-danger">
+                                {{ form.description.errors }}
+                            </div>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="{{ form.location.id_for_label }}" class="form-label">资源位置</label>
+                            {{ form.location|add_class:"form-control" }}
+                            {% if form.location.errors %}
+                            <div class="text-danger">
+                                {{ form.location.errors }}
+                            </div>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="{{ form.quantity.id_for_label }}" class="form-label">资源数量</label>
+                            {{ form.quantity|add_class:"form-control" }}
+                            {% if form.quantity.errors %}
+                            <div class="text-danger">
+                                {{ form.quantity.errors }}
+                            </div>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="mb-3 form-check">
+                            {{ form.status|add_class:"form-check-input" }}
+                            <label for="{{ form.status.id_for_label }}" class="form-check-label">是否可用</label>
+                            {% if form.status.errors %}
+                            <div class="text-danger">
+                                {{ form.status.errors }}
+                            </div>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="d-flex mt-4">
+                            <button type="submit" class="btn btn-primary me-2">保存</button>
+                            <a href="{% url 'resource_list' %}" class="btn btn-secondary">取消</a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

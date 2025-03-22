@@ -1,0 +1,68 @@
+{% extends 'core/base.html' %}
+{% load widget_tweaks %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>5G资源管理</h2>
+        <a href="{% url 'resource_create' %}" class="btn btn-primary">
+            <i class="bi bi-plus"></i> 添加新资源
+        </a>
+    </div>
+
+    {% if resources %}
+    <div class="table-responsive">
+        <table class="table table-striped table-hover">
+            <thead>
+                <tr>
+                    <th>资源名称</th>
+                    <th>资源类型</th>
+                    <th>位置</th>
+                    <th>数量</th>
+                    <th>状态</th>
+                    <th>操作</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for resource in resources %}
+                <tr>
+                    <td>{{ resource.name }}</td>
+                    <td>{{ resource.get_resource_type_display }}</td>
+                    <td>{{ resource.location|default:"--" }}</td>
+                    <td>{{ resource.quantity }}</td>
+                    <td>
+                        {% if resource.status %}
+                        <span class="badge bg-success">可用</span>
+                        {% else %}
+                        <span class="badge bg-danger">不可用</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <div class="btn-group" role="group">
+                            <a href="{% url 'resource_detail' resource.id %}" class="btn btn-sm btn-info">
+                                <i class="bi bi-eye"></i>
+                            </a>
+                            <a href="{% url 'resource_update' resource.id %}" class="btn btn-sm btn-warning">
+                                <i class="bi bi-pencil"></i>
+                            </a>
+                            <a href="{% url 'resource_delete' resource.id %}" class="btn btn-sm btn-danger">
+                                <i class="bi bi-trash"></i>
+                            </a>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="alert alert-info">
+        暂无资源数据，点击上方 "添加新资源" 按钮添加。
+    </div>
+    {% endif %}
+    
+    <div class="mt-4">
+        <a href="{% url 'dashboard' %}" class="btn btn-secondary">返回首页</a>
+    </div>
+</div>
+{% endblock %} 

@@ -1,0 +1,75 @@
+{% extends 'core/base.html' %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header">
+                    <h3>资源详情</h3>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <h5>基本信息</h5>
+                        <table class="table">
+                            <tr>
+                                <th style="width: 150px;">资源名称</th>
+                                <td>{{ resource.name }}</td>
+                            </tr>
+                            <tr>
+                                <th>资源类型</th>
+                                <td>{{ resource.get_resource_type_display }}</td>
+                            </tr>
+                            <tr>
+                                <th>资源位置</th>
+                                <td>{{ resource.location|default:"未设置" }}</td>
+                            </tr>
+                            <tr>
+                                <th>资源数量</th>
+                                <td>{{ resource.quantity }}</td>
+                            </tr>
+                            <tr>
+                                <th>资源状态</th>
+                                <td>
+                                    {% if resource.status %}
+                                    <span class="badge bg-success">可用</span>
+                                    {% else %}
+                                    <span class="badge bg-danger">不可用</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            <tr>
+                                <th>所属用户</th>
+                                <td>{{ resource.user.username }}</td>
+                            </tr>
+                            <tr>
+                                <th>创建时间</th>
+                                <td>{{ resource.created_at|date:"Y-m-d H:i" }}</td>
+                            </tr>
+                            <tr>
+                                <th>最后更新</th>
+                                <td>{{ resource.updated_at|date:"Y-m-d H:i" }}</td>
+                            </tr>
+                        </table>
+                    </div>
+
+                    <div class="mb-3">
+                        <h5>资源描述</h5>
+                        <div class="card">
+                            <div class="card-body">
+                                {{ resource.description|default:"暂无描述"|linebreaks }}
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="d-flex mt-4">
+                        <a href="{% url 'resource_update' resource.id %}" class="btn btn-warning me-2">编辑</a>
+                        <a href="{% url 'resource_delete' resource.id %}" class="btn btn-danger me-2">删除</a>
+                        <a href="{% url 'resource_list' %}" class="btn btn-secondary">返回列表</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

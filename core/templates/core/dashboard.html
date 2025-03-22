@@ -1,0 +1,61 @@
+{% extends 'core/base.html' %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="row">
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-header">
+                    <h4>个人信息</h4>
+                </div>
+                <div class="card-body">
+                    <p><strong>用户名：</strong> {{ user.username }}</p>
+                    <p><strong>邮箱：</strong> {{ user.email }}</p>
+                    <p><strong>手机号：</strong> {{ user.phone }}</p>
+                    <p><strong>注册时间：</strong> {{ user.date_joined|date:"Y-m-d H:i" }}</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header">
+                    <h4>系统功能</h4>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        {% if user.is_staff %}
+                        <div class="col-md-4 mb-3">
+                            <div class="card">
+                                <div class="card-body text-center">
+                                    <h5 class="card-title">用户管理</h5>
+                                    <p class="card-text">管理系统用户和权限</p>
+                                    <a href="{% url 'admin:core_user_changelist' %}" class="btn btn-primary">进入</a>
+                                </div>
+                            </div>
+                        </div>
+                        {% endif %}
+                        <div class="col-md-4 mb-3">
+                            <div class="card">
+                                <div class="card-body text-center">
+                                    <h5 class="card-title">资源管理</h5>
+                                    <p class="card-text">管理5G网络资源</p>
+                                    <a href="{% url 'resource_list' %}" class="btn btn-primary">进入</a>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <div class="card">
+                                <div class="card-body text-center">
+                                    <h5 class="card-title">个人设置</h5>
+                                    <p class="card-text">修改个人信息</p>
+                                    <a href="{% url 'profile_update' %}" class="btn btn-primary">进入</a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
