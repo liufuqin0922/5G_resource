@@ -21,7 +21,6 @@ from core.views import (
     ResourceListView, ResourceCreateView, ResourceUpdateView,
     ResourceDeleteView, ResourceDetailView, ProfileUpdateView,
     change_password, ResourceExportView, ResourceImportView
-    change_password
 )
 
 urlpatterns = [

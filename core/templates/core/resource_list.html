@@ -1,4 +1,4 @@
-{% extends 'core/base.html' %}
+{% extends "core/base.html" %}
 {% load widget_tweaks %}
 
 {% block content %}
@@ -6,19 +6,17 @@
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h2>5G资源管理</h2>
         <div class="d-flex gap-2">
-            <a href="{% url 'resource_export' %}" class="btn btn-success">
+            <a href="{% url "resource_export" %}" class="btn btn-success">
                 <i class="bi bi-download"></i> 导出Excel
             </a>
-        </div>
             {% if user.is_staff %}
-            <a href="{% url 'resource_import' %}" class="btn btn-info">
+            <a href="{% url "resource_import" %}" class="btn btn-info">
                 <i class="bi bi-upload"></i> 导入Excel
             </a>
-        </div>
             {% endif %}
-            <a href="{% url 'resource_create' %}" class="btn btn-primary">
-            <i class="bi bi-plus"></i> 添加新资源
-        </a>
+            <a href="{% url "resource_create" %}" class="btn btn-primary">
+                <i class="bi bi-plus"></i> 添加新资源
+            </a>
         </div>
     </div>
 
@@ -51,18 +49,15 @@
                     </td>
                     <td>
                         <div class="btn-group" role="group">
-                            <a href="{% url 'resource_detail' resource.id %}" class="btn btn-sm btn-info">
+                            <a href="{% url "resource_detail" resource.id %}" class="btn btn-sm btn-info">
                                 <i class="bi bi-eye"></i>
                             </a>
-        </div>
-                            <a href="{% url 'resource_update' resource.id %}" class="btn btn-sm btn-warning">
+                            <a href="{% url "resource_update" resource.id %}" class="btn btn-sm btn-warning">
                                 <i class="bi bi-pencil"></i>
                             </a>
-        </div>
-                            <a href="{% url 'resource_delete' resource.id %}" class="btn btn-sm btn-danger">
+                            <a href="{% url "resource_delete" resource.id %}" class="btn btn-sm btn-danger">
                                 <i class="bi bi-trash"></i>
                             </a>
-        </div>
                         </div>
                     </td>
                 </tr>
@@ -72,13 +67,12 @@
     </div>
     {% else %}
     <div class="alert alert-info">
-        暂无资源数据，点击上方 "添加新资源" 按钮添加。
+        暂无资源数据，点击上方 添加新资源 按钮添加。
     </div>
     {% endif %}
     
     <div class="mt-4">
-        <a href="{% url 'dashboard' %}" class="btn btn-secondary">返回首页</a>
-        </div>
+        <a href="{% url "dashboard" %}" class="btn btn-secondary">返回首页</a>
     </div>
 </div>
-{% endblock %} 
+{% endblock %}

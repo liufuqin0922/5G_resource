@@ -183,13 +183,13 @@ class ResourceExportView(LoginRequiredMixin, View):
         
         if fmt == "xlsx":
             response = HttpResponse(content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
-            response["Content-Disposition"] = "attachment; filename="resources.xlsx""
+            response["Content-Disposition"] = "attachment; filename='resources.xlsx'"
             response.content = dataset.export("xlsx")
             return response
         
         # 默认返回Excel格式
         response = HttpResponse(content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
-        response["Content-Disposition"] = "attachment; filename="resources.xlsx""
+        response["Content-Disposition"] = "attachment; filename='resources.xlsx'"
         response.content = dataset.export("xlsx")
         return response
 class ResourceImportView(LoginRequiredMixin, View):
