@@ -1,0 +1,48 @@
+{% extends 'core/base.html' %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="card">
+        <div class="card-header">
+            <h2>导入设备安装状态数据</h2>
+        </div>
+        <div class="card-body">
+            {% if messages %}
+            <div class="messages mb-4">
+                {% for message in messages %}
+                <div class="alert alert-{{ message.tags }}">
+                    {{ message }}
+                </div>
+                {% endfor %}
+            </div>
+            {% endif %}
+            
+            <form method="post" enctype="multipart/form-data">
+                {% csrf_token %}
+                <div class="mb-3">
+                    <label for="id_import_file" class="form-label">选择Excel文件</label>
+                    <input type="file" name="import_file" id="id_import_file" class="form-control" required accept=".xlsx">
+                    <div class="form-text">支持的格式：.xlsx</div>
+                </div>
+                
+                <div class="alert alert-info">
+                    <h5>Excel文件格式说明：</h5>
+                    <p>Excel文件应包含以下列：</p>
+                    <ul>
+                        <li>网元名称 (network_element_name)</li>
+                        <li>是否在线 (is_online) - 值：True/False 或 是/否</li>
+                        <li>资产序列号 (asset_serial_number)</li>
+                        <li>检查日期 (check_date) - 格式：YYYY-MM-DD</li>
+                    </ul>
+                    <p>注意：首行应为列标题，第一个工作表将被导入。资产序列号不为空的记录将自动设置为在线状态。</p>
+                </div>
+                
+                <div class="d-flex gap-2">
+                    <button type="submit" class="btn btn-primary">导入数据</button>
+                    <a href="{% url 'device_security_status_list' %}" class="btn btn-secondary">返回</a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %} 

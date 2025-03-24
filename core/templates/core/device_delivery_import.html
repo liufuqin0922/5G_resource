@@ -1,0 +1,49 @@
+{% extends 'core/base.html' %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="card">
+        <div class="card-header">
+            <h2>导入设备出货数据</h2>
+        </div>
+        <div class="card-body">
+            {% if messages %}
+            <div class="messages mb-4">
+                {% for message in messages %}
+                <div class="alert alert-{{ message.tags }}">
+                    {{ message }}
+                </div>
+                {% endfor %}
+            </div>
+            {% endif %}
+            
+            <form method="post" enctype="multipart/form-data">
+                {% csrf_token %}
+                <div class="mb-3">
+                    <label for="id_import_file" class="form-label">选择Excel文件</label>
+                    <input type="file" name="import_file" id="id_import_file" class="form-control" required accept=".xlsx">
+                    <div class="form-text">支持的格式：.xlsx</div>
+                </div>
+                
+                <div class="alert alert-info">
+                    <h5>Excel文件格式说明：</h5>
+                    <p>Excel文件应包含以下列：</p>
+                    <ul>
+                        <li>出货日期 (delivery_date) - 格式：YYYY-MM-DD</li>
+                        <li>条码 (barcode)</li>
+                        <li>设备型号 (device_model)</li>
+                        <li>领用单位 (recipient_unit)</li>
+                        <li>领用人 (recipient)</li>
+                    </ul>
+                    <p>注意：首行应为列标题，第一个工作表将被导入。</p>
+                </div>
+                
+                <div class="d-flex gap-2">
+                    <button type="submit" class="btn btn-primary">导入数据</button>
+                    <a href="{% url 'device_delivery_list' %}" class="btn btn-secondary">返回</a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %} 

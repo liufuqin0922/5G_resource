@@ -1,141 +1,80 @@
 from django.shortcuts import render, redirect, get_object_or_404
-from django.contrib.auth import login, authenticate, update_session_auth_hash
+from django.contrib.auth import login, logout, update_session_auth_hash
+from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.forms import AuthenticationForm, PasswordChangeForm
-from django.views.generic.edit import CreateView, UpdateView, DeleteView
-from django.views.generic.list import ListView
-from django.views.generic.detail import DetailView
-from django.urls import reverse_lazy
-from .models import User, Resource5G
-from django.contrib.auth import logout
-from django.shortcuts import redirect
-from django.views.generic import TemplateView, View
-from django.contrib.auth.mixins import LoginRequiredMixin
-from django import forms
-import pandas as pd
-from django.http import HttpResponse
 from django.contrib import messages
-from .resources import Resource5GResource
-from tablib import Dataset
-
-from django.shortcuts import render, redirect, get_object_or_404
-from django.contrib.auth import login, authenticate, update_session_auth_hash
-from django.contrib.auth.decorators import login_required
-from django.contrib.auth.forms import AuthenticationForm, PasswordChangeForm
-from django.views.generic.edit import CreateView, UpdateView, DeleteView
-from django.views.generic.list import ListView
-from django.views.generic.detail import DetailView
-from django.urls import reverse_lazy
-from .models import User, Resource5G
-from django.contrib.auth import logout
-from django.shortcuts import redirect
-from django.views.generic import TemplateView
-from django.contrib.auth.mixins import LoginRequiredMixin
+from django.views.generic import TemplateView, ListView, DetailView, CreateView, UpdateView, DeleteView, View
 from django import forms
+from django.urls import reverse_lazy
+from django.http import HttpResponse, HttpResponseRedirect
+from import_export.formats import base_formats
+from tablib import Dataset
+from django.db import models
+from django.utils import timezone
 
-class RegisterView(CreateView):
-    model = User
-    template_name = 'core/register.html'
-    fields = ['username', 'email', 'phone', 'password']
-    success_url = reverse_lazy('login')
+from .models import User, DeviceArrival, DeviceDelivery, DeviceSecurityStatus
+from .resources import DeviceArrivalResource, DeviceDeliveryResource, DeviceSecurityStatusResource
+
+# Authentication Views
+class RegisterForm(forms.ModelForm):
+    password = forms.CharField(label='密码', widget=forms.PasswordInput)
+    password_confirm = forms.CharField(label='确认密码', widget=forms.PasswordInput)
     
-    def form_valid(self, form):
-        user = form.save(commit=False)
-        user.set_password(form.cleaned_data['password'])
-        user.save()
-        return super().form_valid(form)
+    class Meta:
+        model = User
+        fields = ['username', 'email', 'phone']
+    
+    def clean_password_confirm(self):
+        cd = self.cleaned_data
+        if cd['password'] != cd['password_confirm']:
+            raise forms.ValidationError('两次输入的密码不一致')
+        return cd['password_confirm']
 
-def login_view(request):
-    if request.method == 'POST':
+class RegisterView(TemplateView):
+    template_name = 'core/register.html'
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['form'] = RegisterForm()
+        return context
+    
+    def post(self, request, *args, **kwargs):
+        form = RegisterForm(request.POST)
+        if form.is_valid():
+            user = form.save(commit=False)
+            user.set_password(form.cleaned_data['password'])
+            user.save()
+            login(request, user)
+            return redirect('dashboard')
+        return render(request, self.template_name, {'form': form})
+
+class LoginView(TemplateView):
+    template_name = 'core/login.html'
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['form'] = AuthenticationForm()
+        return context
+    
+    def post(self, request, *args, **kwargs):
         form = AuthenticationForm(request, data=request.POST)
         if form.is_valid():
-            username = form.cleaned_data.get('username')
-            password = form.cleaned_data.get('password')
-            user = authenticate(username=username, password=password)
-            if user is not None:
-                login(request, user)
-                return redirect('dashboard')
-    else:
-        form = AuthenticationForm()
-    return render(request, 'core/login.html', {'form': form})
-
-@login_required
-def dashboard(request):
-    return render(request, 'core/dashboard.html')
+            user = form.get_user()
+            login(request, user)
+            return redirect('dashboard')
+        return render(request, self.template_name, {'form': form})
 
 class LogoutView(LoginRequiredMixin, TemplateView):
     template_name = 'core/logout.html'
     
     def get(self, request, *args, **kwargs):
-        return super().get(request, *args, **kwargs)
+        logout(request)
+        return redirect('login')
     
     def post(self, request, *args, **kwargs):
         logout(request)
         return redirect('login')
-
-# Resource Management Views
-class ResourceListView(LoginRequiredMixin, ListView):
-    model = Resource5G
-    template_name = 'core/resource_list.html'
-    context_object_name = 'resources'
-    
-    def get_queryset(self):
-        # Staff can see all resources, regular users only see their own
-        if self.request.user.is_staff:
-            return Resource5G.objects.all()
-        return Resource5G.objects.filter(user=self.request.user)
-
-class ResourceForm(forms.ModelForm):
-    class Meta:
-        model = Resource5G
-        fields = ['name', 'resource_type', 'description', 'location', 'quantity', 'status']
-        widgets = {
-            'description': forms.Textarea(attrs={'rows': 3}),
-        }
-
-class ResourceCreateView(LoginRequiredMixin, CreateView):
-    model = Resource5G
-    form_class = ResourceForm
-    template_name = 'core/resource_form.html'
-    success_url = reverse_lazy('resource_list')
-    
-    def form_valid(self, form):
-        form.instance.user = self.request.user
-        return super().form_valid(form)
-
-class ResourceUpdateView(LoginRequiredMixin, UpdateView):
-    model = Resource5G
-    form_class = ResourceForm
-    template_name = 'core/resource_form.html'
-    success_url = reverse_lazy('resource_list')
-    
-    def get_queryset(self):
-        # Staff can update any resource, regular users only their own
-        if self.request.user.is_staff:
-            return Resource5G.objects.all()
-        return Resource5G.objects.filter(user=self.request.user)
-
-class ResourceDeleteView(LoginRequiredMixin, DeleteView):
-    model = Resource5G
-    template_name = 'core/resource_confirm_delete.html'
-    success_url = reverse_lazy('resource_list')
-    
-    def get_queryset(self):
-        # Staff can delete any resource, regular users only their own
-        if self.request.user.is_staff:
-            return Resource5G.objects.all()
-        return Resource5G.objects.filter(user=self.request.user)
-
-class ResourceDetailView(LoginRequiredMixin, DetailView):
-    model = Resource5G
-    template_name = 'core/resource_detail.html'
-    context_object_name = 'resource'
-    
-    def get_queryset(self):
-        # Staff can view any resource, regular users only their own
-        if self.request.user.is_staff:
-            return Resource5G.objects.all()
-        return Resource5G.objects.filter(user=self.request.user)
 
 # Profile Management Views
 class UserUpdateForm(forms.ModelForm):
@@ -164,66 +103,687 @@ def change_password(request):
         form = PasswordChangeForm(request.user)
     return render(request, 'core/change_password.html', {'form': form})
 
-class ResourceExportView(LoginRequiredMixin, View):
-    """资源导出视图"""
+# Dashboard View
+class DashboardView(LoginRequiredMixin, TemplateView):
+    template_name = 'core/dashboard.html'
+
+# 设备到货清单视图
+class DeviceArrivalListView(LoginRequiredMixin, ListView):
+    model = DeviceArrival
+    template_name = 'core/device_arrival_list.html'
+    context_object_name = 'device_arrivals'
+    paginate_by = 50  # 设置每页显示50条记录
+    
+    def get_queryset(self):
+        queryset = DeviceArrival.objects.all() if self.request.user.is_staff else DeviceArrival.objects.filter(created_by=self.request.user)
+        
+        # 搜索功能
+        query = self.request.GET.get('q', '')
+        if query:
+            queryset = queryset.filter(
+                # 在多个字段中搜索
+                models.Q(project_name__icontains=query) |
+                models.Q(device_model__icontains=query) |
+                models.Q(barcode__icontains=query)
+            )
+        
+        # 按照创建时间倒序排序
+        return queryset.order_by('-created_at')
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        # 将搜索关键词加入上下文
+        context['query'] = self.request.GET.get('q', '')
+        return context
+
+class DeviceArrivalCreateForm(forms.ModelForm):
+    class Meta:
+        model = DeviceArrival
+        fields = ['project_name', 'arrival_date', 'device_model', 'barcode']
+        
+    def __init__(self, *args, **kwargs):
+        self.user = kwargs.pop('user', None)
+        super().__init__(*args, **kwargs)
+        
+    def save(self, commit=True):
+        instance = super().save(commit=False)
+        if self.user:
+            instance.created_by = self.user
+        if commit:
+            instance.save()
+        return instance
+
+class DeviceArrivalCreateView(LoginRequiredMixin, CreateView):
+    model = DeviceArrival
+    form_class = DeviceArrivalCreateForm
+    template_name = 'core/device_arrival_form.html'
+    success_url = reverse_lazy('device_arrival_list')
+    
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs['user'] = self.request.user
+        return kwargs
+    
+    def get_initial(self):
+        initial = super().get_initial()
+        # 从URL参数中获取条码
+        barcode = self.request.GET.get('barcode')
+        if barcode:
+            # 设置条码初始值
+            initial['barcode'] = barcode
+            # 尝试查找对应的安装记录
+            installation = DeviceSecurityStatus.objects.filter(asset_serial_number=barcode).first()
+            if installation:
+                # 如果找到对应安装记录，可以提取一些信息
+                initial['device_model'] = installation.network_element_name.split('_')[-1] if '_' in installation.network_element_name else '未知型号'
+                initial['project_name'] = installation.network_element_name.split('_')[0] if '_' in installation.network_element_name else '未知项目'
+                initial['arrival_date'] = timezone.now().date()
+        return initial
+
+class DeviceArrivalUpdateView(LoginRequiredMixin, UpdateView):
+    model = DeviceArrival
+    form_class = DeviceArrivalCreateForm
+    template_name = 'core/device_arrival_form.html'
+    success_url = reverse_lazy('device_arrival_list')
+    
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs['user'] = self.request.user
+        return kwargs
+    
+    def get_queryset(self):
+        if self.request.user.is_staff:
+            return DeviceArrival.objects.all()
+        return DeviceArrival.objects.filter(created_by=self.request.user)
+
+class DeviceArrivalDeleteView(LoginRequiredMixin, DeleteView):
+    model = DeviceArrival
+    template_name = 'core/device_arrival_confirm_delete.html'
+    success_url = reverse_lazy('device_arrival_list')
+    context_object_name = 'device_arrival'
+    
+    def get_queryset(self):
+        if self.request.user.is_staff:
+            return DeviceArrival.objects.all()
+        return DeviceArrival.objects.filter(created_by=self.request.user)
+
+class DeviceArrivalExportView(LoginRequiredMixin, View):
+    """设备到货清单导出视图"""
     
     def get(self, request, *args, **kwargs):
-        # 获取要导出的资源
         if request.user.is_staff:
-            queryset = Resource5G.objects.all()
+            queryset = DeviceArrival.objects.all()
         else:
-            queryset = Resource5G.objects.filter(user=request.user)
+            queryset = DeviceArrival.objects.filter(created_by=request.user)
             
-        # 创建资源导出器
-        resource = Resource5GResource()
+        resource = DeviceArrivalResource()
         dataset = resource.export(queryset)
         
-        # 根据请求的格式返回响应
-        fmt = request.GET.get("format", "xlsx")
-        
-        if fmt == "xlsx":
-            response = HttpResponse(content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
-            response["Content-Disposition"] = "attachment; filename='resources.xlsx'"
-            response.content = dataset.export("xlsx")
-            return response
-        
-        # 默认返回Excel格式
         response = HttpResponse(content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
-        response["Content-Disposition"] = "attachment; filename='resources.xlsx'"
+        response["Content-Disposition"] = 'attachment; filename="device_arrivals.xlsx"'
         response.content = dataset.export("xlsx")
         return response
-class ResourceImportView(LoginRequiredMixin, View):
-    """资源导入视图"""
-    
-    def get(self, request, *args, **kwargs):
-        return render(request, "core/resource_import.html")
+
+class DeviceArrivalImportView(LoginRequiredMixin, TemplateView):
+    """设备到货导入视图"""
+    template_name = 'core/device_arrival_import.html'
     
     def post(self, request, *args, **kwargs):
-        if not request.user.is_staff:
-            messages.error(request, "只有管理员才能导入资源")
-            return redirect("resource_list")
-            
-        resource = Resource5GResource()
+        resource = DeviceArrivalResource()
         dataset = Dataset()
         
-        if "import_file" in request.FILES:
-            import_file = request.FILES["import_file"]
-            
-            # 检查文件格式
-            if import_file.name.endswith(".xlsx"):
-                dataset.load(import_file.read(), "xlsx")
-            else:
-                messages.error(request, "只支持.xlsx格式的文件")
-                return redirect("resource_import")
-                
-            # 导入数据
-            result = resource.import_data(dataset, dry_run=True)
-            
-            if not result.has_errors():
-                resource.import_data(dataset, dry_run=False)
-                messages.success(request, "资源导入成功")
-                return redirect("resource_list")
-            else:
-                messages.error(request, "导入失败，请检查数据格式")
+        # 获取上传的文件
+        import_file = request.FILES.get('import_file')
+        if not import_file:
+            messages.error(request, "请选择上传文件")
+            return HttpResponseRedirect(reverse_lazy('device_arrival_import'))
         
-        return redirect("resource_import")
+        try:
+            # 检查文件类型
+            if not import_file.name.endswith(('.xls', '.xlsx')):
+                messages.error(request, "只接受Excel文件(.xls, .xlsx)")
+                return HttpResponseRedirect(reverse_lazy('device_arrival_import'))
+            
+            # 尝试加载Excel内容
+            try:
+                imported_data = dataset.load(import_file.read(), format='xlsx')
+            except Exception as e:
+                messages.error(request, f"Excel文件读取失败: {str(e)}")
+                return HttpResponseRedirect(reverse_lazy('device_arrival_import'))
+            
+            # 关联创建者
+            def before_import(dataset, dry_run, **kwargs):
+                for row in dataset.dict:
+                    row['created_by'] = request.user.id
+            
+            # 设置导入前回调
+            result = resource.import_data(dataset, dry_run=True, before_import=before_import)
+            
+            # 检查导入结果
+            if result.has_errors():
+                # 汇总错误信息
+                error_rows = []
+                for error in result.row_errors():
+                    row_number = error[0]
+                    error_info = "、".join([f"{field}: {err.error}" for field, errors in error[1].items() for err in errors])
+                    error_rows.append(f"行 {row_number}: {error_info}")
+                
+                error_message = "、".join(error_rows[:10])
+                if len(error_rows) > 10:
+                    error_message += f"...等{len(error_rows)}个错误"
+                
+                messages.error(request, f"导入数据有错误: {error_message}")
+                return HttpResponseRedirect(reverse_lazy('device_arrival_import'))
+            
+            # 正式导入数据
+            result = resource.import_data(dataset, dry_run=False, before_import=before_import)
+            
+            # 导入成功
+            messages.success(request, f"成功导入{result.total_rows}行数据")
+            
+        except Exception as e:
+            messages.error(request, f"导入过程发生错误: {str(e)}")
+        
+        return HttpResponseRedirect(reverse_lazy('device_arrival_list'))
+
+# 设备出货清单视图
+class DeviceDeliveryListView(LoginRequiredMixin, ListView):
+    model = DeviceDelivery
+    template_name = 'core/device_delivery_list.html'
+    context_object_name = 'device_deliveries'
+    paginate_by = 50  # 设置每页显示50条记录
+    
+    def get_queryset(self):
+        queryset = DeviceDelivery.objects.all() if self.request.user.is_staff else DeviceDelivery.objects.filter(created_by=self.request.user)
+        
+        # 搜索功能
+        query = self.request.GET.get('q', '')
+        if query:
+            queryset = queryset.filter(
+                # 在多个字段中搜索
+                models.Q(device_model__icontains=query) |
+                models.Q(barcode__icontains=query) |
+                models.Q(recipient_unit__icontains=query) |
+                models.Q(recipient__icontains=query)
+            )
+        
+        # 按照创建时间倒序排序
+        return queryset.order_by('-created_at')
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        # 将搜索关键词加入上下文
+        context['query'] = self.request.GET.get('q', '')
+        return context
+
+class DeviceDeliveryCreateForm(forms.ModelForm):
+    class Meta:
+        model = DeviceDelivery
+        fields = ['delivery_date', 'barcode', 'device_model', 'recipient_unit', 'recipient']
+        
+    def __init__(self, *args, **kwargs):
+        self.user = kwargs.pop('user', None)
+        super().__init__(*args, **kwargs)
+        
+    def save(self, commit=True):
+        instance = super().save(commit=False)
+        if self.user:
+            instance.created_by = self.user
+        if commit:
+            instance.save()
+        return instance
+
+class DeviceDeliveryCreateView(LoginRequiredMixin, CreateView):
+    model = DeviceDelivery
+    form_class = DeviceDeliveryCreateForm
+    template_name = 'core/device_delivery_form.html'
+    success_url = reverse_lazy('device_delivery_list')
+    
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs['user'] = self.request.user
+        return kwargs
+
+class DeviceDeliveryUpdateView(LoginRequiredMixin, UpdateView):
+    model = DeviceDelivery
+    form_class = DeviceDeliveryCreateForm
+    template_name = 'core/device_delivery_form.html'
+    success_url = reverse_lazy('device_delivery_list')
+    
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs['user'] = self.request.user
+        return kwargs
+    
+    def get_queryset(self):
+        if self.request.user.is_staff:
+            return DeviceDelivery.objects.all()
+        return DeviceDelivery.objects.filter(created_by=self.request.user)
+
+class DeviceDeliveryDeleteView(LoginRequiredMixin, DeleteView):
+    model = DeviceDelivery
+    template_name = 'core/device_delivery_confirm_delete.html'
+    success_url = reverse_lazy('device_delivery_list')
+    context_object_name = 'device_delivery'
+    
+    def get_queryset(self):
+        if self.request.user.is_staff:
+            return DeviceDelivery.objects.all()
+        return DeviceDelivery.objects.filter(created_by=self.request.user)
+
+class DeviceDeliveryExportView(LoginRequiredMixin, View):
+    """设备出货清单导出视图"""
+    
+    def get(self, request, *args, **kwargs):
+        if request.user.is_staff:
+            queryset = DeviceDelivery.objects.all()
+        else:
+            queryset = DeviceDelivery.objects.filter(created_by=request.user)
+            
+        resource = DeviceDeliveryResource()
+        dataset = resource.export(queryset)
+        
+        response = HttpResponse(content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+        response["Content-Disposition"] = 'attachment; filename="device_deliveries.xlsx"'
+        response.content = dataset.export("xlsx")
+        return response
+
+class DeviceDeliveryImportView(LoginRequiredMixin, TemplateView):
+    """设备出货清单导入视图"""
+    template_name = 'core/device_delivery_import.html'
+    
+    def post(self, request, *args, **kwargs):
+        resource = DeviceDeliveryResource()
+        dataset = Dataset()
+        
+        # 获取上传的文件
+        import_file = request.FILES.get('import_file')
+        if not import_file:
+            messages.error(request, "请选择上传文件")
+            return HttpResponseRedirect(reverse_lazy('device_delivery_import'))
+        
+        try:
+            # 检查文件类型
+            if not import_file.name.endswith(('.xls', '.xlsx')):
+                messages.error(request, "只接受Excel文件(.xls, .xlsx)")
+                return HttpResponseRedirect(reverse_lazy('device_delivery_import'))
+            
+            # 尝试加载Excel内容
+            try:
+                imported_data = dataset.load(import_file.read(), format='xlsx')
+            except Exception as e:
+                messages.error(request, f"Excel文件读取失败: {str(e)}")
+                return HttpResponseRedirect(reverse_lazy('device_delivery_import'))
+            
+            # 关联创建者
+            def before_import(dataset, dry_run, **kwargs):
+                for row in dataset.dict:
+                    row['created_by'] = request.user.id
+            
+            # 设置导入前回调
+            result = resource.import_data(dataset, dry_run=True, before_import=before_import)
+            
+            # 检查导入结果
+            if result.has_errors():
+                # 汇总错误信息
+                error_rows = []
+                for error in result.row_errors():
+                    row_number = error[0]
+                    error_info = "、".join([f"{field}: {err.error}" for field, errors in error[1].items() for err in errors])
+                    error_rows.append(f"行 {row_number}: {error_info}")
+                
+                error_message = "、".join(error_rows[:10])
+                if len(error_rows) > 10:
+                    error_message += f"...等{len(error_rows)}个错误"
+                
+                messages.error(request, f"导入数据有错误: {error_message}")
+                return HttpResponseRedirect(reverse_lazy('device_delivery_import'))
+            
+            # 正式导入数据
+            result = resource.import_data(dataset, dry_run=False, before_import=before_import)
+            
+            # 导入成功
+            messages.success(request, f"成功导入{result.total_rows}行数据")
+            
+        except Exception as e:
+            messages.error(request, f"导入过程发生错误: {str(e)}")
+        
+        return HttpResponseRedirect(reverse_lazy('device_delivery_list'))
+
+# 设备安全状态视图
+class DeviceSecurityStatusListView(LoginRequiredMixin, ListView):
+    model = DeviceSecurityStatus
+    template_name = 'core/device_security_status_list.html'
+    context_object_name = 'device_statuses'
+    paginate_by = 50  # 设置每页显示50条记录
+    
+    def get_queryset(self):
+        queryset = DeviceSecurityStatus.objects.all() if self.request.user.is_staff else DeviceSecurityStatus.objects.filter(created_by=self.request.user)
+        
+        # 搜索功能
+        query = self.request.GET.get('q', '')
+        if query:
+            queryset = queryset.filter(
+                # 在多个字段中搜索
+                models.Q(network_element_name__icontains=query) |
+                models.Q(asset_serial_number__icontains=query)
+            )
+        
+        # 增加在线状态筛选
+        online_status = self.request.GET.get('status')
+        if online_status == 'online':
+            queryset = queryset.filter(is_online=True)
+        elif online_status == 'offline':
+            queryset = queryset.filter(is_online=False)
+        
+        # 按照最后检查时间倒序排序
+        return queryset.order_by('-last_check_time')
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        # 将搜索关键词和状态筛选加入上下文
+        context['query'] = self.request.GET.get('q', '')
+        context['status'] = self.request.GET.get('status', '')
+        return context
+
+class DeviceSecurityStatusCreateForm(forms.ModelForm):
+    class Meta:
+        model = DeviceSecurityStatus
+        fields = ['network_element_name', 'is_online', 'asset_serial_number', 'check_date']
+        
+    def __init__(self, *args, **kwargs):
+        self.user = kwargs.pop('user', None)
+        super().__init__(*args, **kwargs)
+        
+    def save(self, commit=True):
+        instance = super().save(commit=False)
+        if self.user:
+            instance.created_by = self.user
+        if commit:
+            instance.save()
+        return instance
+
+class DeviceSecurityStatusCreateView(LoginRequiredMixin, CreateView):
+    model = DeviceSecurityStatus
+    form_class = DeviceSecurityStatusCreateForm
+    template_name = 'core/device_security_status_form.html'
+    success_url = reverse_lazy('device_security_status_list')
+    
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs['user'] = self.request.user
+        return kwargs
+    
+    def get_initial(self):
+        initial = super().get_initial()
+        # 从URL参数中获取条码
+        barcode = self.request.GET.get('barcode')
+        if barcode:
+            # 设置资产序列号初始值为条码
+            initial['asset_serial_number'] = barcode
+            initial['is_online'] = True  # 默认设置为在线
+            # 尝试查找对应的到货记录
+            arrival = DeviceArrival.objects.filter(barcode=barcode).first()
+            if arrival:
+                initial['network_element_name'] = f"{arrival.project_name}_{arrival.device_model}"
+                initial['check_date'] = timezone.now().date()
+        return initial
+
+class DeviceSecurityStatusUpdateView(LoginRequiredMixin, UpdateView):
+    model = DeviceSecurityStatus
+    form_class = DeviceSecurityStatusCreateForm
+    template_name = 'core/device_security_status_form.html'
+    success_url = reverse_lazy('device_security_status_list')
+    
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs['user'] = self.request.user
+        return kwargs
+    
+    def get_queryset(self):
+        if self.request.user.is_staff:
+            return DeviceSecurityStatus.objects.all()
+        return DeviceSecurityStatus.objects.filter(created_by=self.request.user)
+
+class DeviceSecurityStatusDeleteView(LoginRequiredMixin, DeleteView):
+    model = DeviceSecurityStatus
+    template_name = 'core/device_security_status_confirm_delete.html'
+    success_url = reverse_lazy('device_security_status_list')
+    context_object_name = 'device_security_status'
+    
+    def get_queryset(self):
+        if self.request.user.is_staff:
+            return DeviceSecurityStatus.objects.all()
+        return DeviceSecurityStatus.objects.filter(created_by=self.request.user)
+
+class DeviceSecurityStatusExportView(LoginRequiredMixin, View):
+    """设备安全状态导出视图"""
+    
+    def get(self, request, *args, **kwargs):
+        if request.user.is_staff:
+            queryset = DeviceSecurityStatus.objects.all()
+        else:
+            queryset = DeviceSecurityStatus.objects.filter(created_by=request.user)
+            
+        resource = DeviceSecurityStatusResource()
+        dataset = resource.export(queryset)
+        
+        response = HttpResponse(content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+        response["Content-Disposition"] = 'attachment; filename="device_security_statuses.xlsx"'
+        response.content = dataset.export("xlsx")
+        return response
+
+class DeviceSecurityStatusImportView(LoginRequiredMixin, TemplateView):
+    """设备安装状态导入视图"""
+    template_name = 'core/device_security_status_import.html'
+    
+    def post(self, request, *args, **kwargs):
+        resource = DeviceSecurityStatusResource()
+        dataset = Dataset()
+        
+        # 获取上传的文件
+        import_file = request.FILES.get('import_file')
+        if not import_file:
+            messages.error(request, "请选择上传文件")
+            return HttpResponseRedirect(reverse_lazy('device_security_status_import'))
+        
+        try:
+            # 检查文件类型
+            if not import_file.name.endswith(('.xls', '.xlsx')):
+                messages.error(request, "只接受Excel文件(.xls, .xlsx)")
+                return HttpResponseRedirect(reverse_lazy('device_security_status_import'))
+            
+            # 尝试加载Excel内容
+            try:
+                imported_data = dataset.load(import_file.read(), format='xlsx')
+            except Exception as e:
+                messages.error(request, f"Excel文件读取失败: {str(e)}")
+                return HttpResponseRedirect(reverse_lazy('device_security_status_import'))
+            
+            # 关联创建者
+            def before_import(dataset, dry_run, **kwargs):
+                for row in dataset.dict:
+                    row['created_by'] = request.user.id
+            
+            # 设置导入前回调
+            result = resource.import_data(dataset, dry_run=True, before_import=before_import)
+            
+            # 检查导入结果
+            if result.has_errors():
+                # 汇总错误信息
+                error_rows = []
+                for error in result.row_errors():
+                    row_number = error[0]
+                    error_info = "、".join([f"{field}: {err.error}" for field, errors in error[1].items() for err in errors])
+                    error_rows.append(f"行 {row_number}: {error_info}")
+                
+                error_message = "、".join(error_rows[:10])
+                if len(error_rows) > 10:
+                    error_message += f"...等{len(error_rows)}个错误"
+                
+                messages.error(request, f"导入数据有错误: {error_message}")
+                return HttpResponseRedirect(reverse_lazy('device_security_status_import'))
+            
+            # 正式导入数据
+            result = resource.import_data(dataset, dry_run=False, before_import=before_import)
+            
+            # 导入成功
+            messages.success(request, f"成功导入{result.total_rows}行数据")
+            
+        except Exception as e:
+            messages.error(request, f"导入过程发生错误: {str(e)}")
+        
+        return HttpResponseRedirect(reverse_lazy('device_security_status_list'))
+
+class DashboardStatusView(LoginRequiredMixin, TemplateView):
+    """设备状态看板视图"""
+    template_name = 'core/dashboard_status.html'
+    items_per_page = 20  # 每页显示的设备数量
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        
+        # 获取当前页码
+        page = self.request.GET.get('page', 1)
+        device_type = self.request.GET.get('type', 'online')  # 默认显示在线设备
+        try:
+            page = int(page)
+        except ValueError:
+            page = 1
+        
+        # 限制查询的时间范围，只获取最近90天的数据
+        date_limit = timezone.now() - timezone.timedelta(days=90)
+        
+        # 只获取必要的字段，减少内存使用
+        arrivals = DeviceArrival.objects.filter(
+            created_at__gte=date_limit
+        ).values('barcode', 'device_model', 'project_name', 'arrival_date')
+        
+        installations = DeviceSecurityStatus.objects.filter(
+            created_at__gte=date_limit
+        ).values('asset_serial_number', 'network_element_name', 'is_online', 'check_date')
+        
+        # 使用字典代替多次查询，提高效率
+        arrival_dict = {item['barcode']: item for item in arrivals if item['barcode']}
+        installation_dict = {item['asset_serial_number']: item for item in installations if item['asset_serial_number']}
+        
+        # 高效计算设备分类
+        arrival_barcodes = set(arrival_dict.keys())
+        installation_serials = set(installation_dict.keys())
+        
+        # 计算不同情况的设备
+        online_devices = arrival_barcodes.intersection(installation_serials)
+        offline_devices = arrival_barcodes.difference(installation_serials)
+        other_devices = installation_serials.difference(arrival_barcodes)
+        
+        # 获取今日数据
+        today = timezone.now().date()
+        
+        today_installations = DeviceSecurityStatus.objects.filter(
+            created_at__date=today
+        ).values('is_online')
+        
+        today_online_count = sum(1 for item in today_installations if item['is_online'])
+        today_offline_count = len(today_installations) - today_online_count
+        
+        # 准备分页数据
+        if device_type == 'online':
+            all_devices = list(online_devices)
+            device_label = '在线设备'
+        elif device_type == 'offline':
+            all_devices = list(offline_devices)
+            device_label = '脱网设备'
+        else:  # 'other'
+            all_devices = list(other_devices)
+            device_label = '其他设备'
+            
+        # 计算总页数
+        total_devices = len(all_devices)
+        total_pages = (total_devices + self.items_per_page - 1) // self.items_per_page
+        
+        # 确保页码有效
+        if page < 1:
+            page = 1
+        if page > total_pages and total_pages > 0:
+            page = total_pages
+            
+        # 计算当前页的设备
+        start_idx = (page - 1) * self.items_per_page
+        end_idx = start_idx + self.items_per_page
+        current_page_devices = all_devices[start_idx:end_idx]
+        
+        # 生成当前设备列表
+        device_list = []
+        
+        if device_type == 'online':
+            for barcode in current_page_devices:
+                arrival = arrival_dict.get(barcode)
+                installation = installation_dict.get(barcode)
+                if arrival and installation:
+                    device_list.append({
+                        'barcode': barcode,
+                        'device_model': arrival['device_model'],
+                        'project_name': arrival['project_name'],
+                        'network_element_name': installation['network_element_name'],
+                        'is_online': installation['is_online'],
+                        'check_date': installation['check_date'],
+                    })
+        elif device_type == 'offline':
+            for barcode in current_page_devices:
+                arrival = arrival_dict.get(barcode)
+                if arrival:
+                    device_list.append({
+                        'barcode': barcode,
+                        'device_model': arrival['device_model'],
+                        'project_name': arrival['project_name'],
+                        'arrival_date': arrival['arrival_date'],
+                    })
+        else:  # 'other'
+            for serial in current_page_devices:
+                installation = installation_dict.get(serial)
+                if installation:
+                    device_list.append({
+                        'serial': serial,
+                        'network_element_name': installation['network_element_name'],
+                        'is_online': installation['is_online'],
+                        'check_date': installation['check_date'],
+                    })
+        
+        # 为了向后兼容，保留原来的列表
+        online_device_list = []
+        offline_device_list = []
+        other_device_list = []
+        
+        # 限制数量以减少内存使用
+        if device_type == 'online':
+            online_device_list = device_list
+        elif device_type == 'offline':
+            offline_device_list = device_list
+        else:
+            other_device_list = device_list
+        
+        # 添加数据到上下文
+        context.update({
+            'online_count': len(online_devices),
+            'offline_count': len(offline_devices),
+            'other_count': len(other_devices),
+            'today_online_count': today_online_count,
+            'today_offline_count': today_offline_count,
+            'online_device_list': online_device_list,
+            'offline_device_list': offline_device_list,
+            'other_device_list': other_device_list,
+            'today': today,
+            'is_limited_view': True,
+            'date_range': f"过去90天 ({date_limit.strftime('%Y-%m-%d')} 至今)",
+            
+            # 分页信息
+            'current_page': page,
+            'total_pages': total_pages,
+            'total_devices': total_devices,
+            'device_type': device_type,
+            'device_label': device_label,
+            'device_list': device_list,
+            'page_range': range(max(1, page - 2), min(total_pages + 1, page + 3)),
+        })
+        
+        return context

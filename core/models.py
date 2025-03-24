@@ -16,27 +16,58 @@ class User(AbstractUser):
     def __str__(self):
         return self.username
 
-class Resource5G(models.Model):
-    """5G资源模型"""
-    RESOURCE_TYPES = (
-        ('network', '网络资源'),
-        ('spectrum', '频谱资源'),
-        ('device', '设备资源'),
-    )
-    name = models.CharField(max_length=100, verbose_name='资源名称')
-    resource_type = models.CharField(max_length=20, choices=RESOURCE_TYPES, verbose_name='资源类型')
-    description = models.TextField(blank=True, null=True, verbose_name='资源描述')
-    location = models.CharField(max_length=100, blank=True, null=True, verbose_name='资源位置')
-    quantity = models.IntegerField(default=1, verbose_name='资源数量')
-    status = models.BooleanField(default=True, verbose_name='是否可用')
-    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='resources', verbose_name='所属用户')
+class DeviceArrival(models.Model):
+    """设备到货清单"""
+    project_name = models.CharField(max_length=100, verbose_name='项目名称')
+    arrival_date = models.DateField(verbose_name='到货日期')
+    device_model = models.CharField(max_length=100, verbose_name='设备型号')
+    barcode = models.CharField(max_length=100, unique=True, verbose_name='条码')
     created_at = models.DateTimeField(auto_now_add=True, verbose_name='创建时间')
     updated_at = models.DateTimeField(auto_now=True, verbose_name='更新时间')
+    created_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name='created_arrivals', verbose_name='创建人')
 
     class Meta:
-        verbose_name = '5G资源'
+        verbose_name = '设备到货清单'
         verbose_name_plural = verbose_name
-        ordering = ['-created_at']
+        ordering = ['-arrival_date']
 
     def __str__(self):
-        return self.name
+        return f"{self.project_name} - {self.device_model} - {self.barcode}"
+
+class DeviceDelivery(models.Model):
+    """设备出货清单"""
+    delivery_date = models.DateField(verbose_name='领用日期')
+    barcode = models.CharField(max_length=100, verbose_name='条码')
+    device_model = models.CharField(max_length=100, verbose_name='设备型号')
+    recipient_unit = models.CharField(max_length=100, verbose_name='领用单位')
+    recipient = models.CharField(max_length=50, verbose_name='领用人')
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name='创建时间')
+    updated_at = models.DateTimeField(auto_now=True, verbose_name='更新时间')
+    created_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name='created_deliveries', verbose_name='创建人')
+
+    class Meta:
+        verbose_name = '设备出货清单'
+        verbose_name_plural = verbose_name
+        ordering = ['-delivery_date']
+
+    def __str__(self):
+        return f"{self.device_model} - {self.barcode} - {self.recipient}"
+
+class DeviceSecurityStatus(models.Model):
+    """设备安装状态"""
+    network_element_name = models.CharField(max_length=100, verbose_name='网元名称')
+    is_online = models.BooleanField(default=True, verbose_name='是否在线')
+    asset_serial_number = models.CharField(max_length=100, verbose_name='资产序列号')
+    check_date = models.DateField(verbose_name='检查日期', auto_now=False, auto_now_add=False, null=True, blank=True)
+    last_check_time = models.DateTimeField(auto_now=True, verbose_name='最后检查时间')
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name='创建时间')
+    updated_at = models.DateTimeField(auto_now=True, verbose_name='更新时间')
+    created_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name='created_security_statuses', verbose_name='创建人')
+
+    class Meta:
+        verbose_name = '设备安装状态'
+        verbose_name_plural = verbose_name
+        ordering = ['-last_check_time']
+
+    def __str__(self):
+        return f"{self.network_element_name} - {'在线' if self.is_online else '离线'}"

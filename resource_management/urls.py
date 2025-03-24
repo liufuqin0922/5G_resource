@@ -15,34 +15,86 @@ Including another URLconf
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
 from django.contrib import admin
-from django.urls import path
+from django.urls import path, include
+from django.conf import settings
+from django.conf.urls.static import static
+
 from core.views import (
-    RegisterView, login_view, dashboard, LogoutView,
-    ResourceListView, ResourceCreateView, ResourceUpdateView,
-    ResourceDeleteView, ResourceDetailView, ProfileUpdateView,
-    change_password, ResourceExportView, ResourceImportView
+    RegisterView, 
+    LoginView,
+    LogoutView,
+    DashboardView,
+    ProfileUpdateView,
+    change_password,
+    
+    # Device Arrival views
+    DeviceArrivalListView,
+    DeviceArrivalCreateView, 
+    DeviceArrivalUpdateView,
+    DeviceArrivalDeleteView,
+    DeviceArrivalExportView,
+    DeviceArrivalImportView,
+    
+    # Device Delivery views
+    DeviceDeliveryListView,
+    DeviceDeliveryCreateView,
+    DeviceDeliveryUpdateView,
+    DeviceDeliveryDeleteView,
+    DeviceDeliveryExportView,
+    DeviceDeliveryImportView,
+    
+    # Device Security Status views
+    DeviceSecurityStatusListView,
+    DeviceSecurityStatusCreateView,
+    DeviceSecurityStatusUpdateView,
+    DeviceSecurityStatusDeleteView,
+    DeviceSecurityStatusExportView,
+    DeviceSecurityStatusImportView,
+    
+    # Dashboard Status view
+    DashboardStatusView,
 )
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('', login_view, name='home'),
-    path('login/', login_view, name='login'),
+    
+    # Authentication URLs
     path('register/', RegisterView.as_view(), name='register'),
-    path('dashboard/', dashboard, name='dashboard'),
+    path('login/', LoginView.as_view(), name='login'),
     path('logout/', LogoutView.as_view(), name='logout'),
     
-    # Resource Management URLs
-    path('resources/', ResourceListView.as_view(), name='resource_list'),
-    path('resources/add/', ResourceCreateView.as_view(), name='resource_create'),
-    path('resources/<int:pk>/', ResourceDetailView.as_view(), name='resource_detail'),
-    path('resources/<int:pk>/edit/', ResourceUpdateView.as_view(), name='resource_update'),
-    path('resources/<int:pk>/delete/', ResourceDeleteView.as_view(), name='resource_delete'),
+    # Dashboard
+    path('', DashboardView.as_view(), name='dashboard'),
+    path('dashboard/status/', DashboardStatusView.as_view(), name='dashboard_status'),
     
-    # Resource Import/Export URLs
-    path("resources/export/", ResourceExportView.as_view(), name="resource_export"),
-    path("resources/import/", ResourceImportView.as_view(), name="resource_import"),
-    
-    # Profile Management URLs
+    # Profile
     path('profile/', ProfileUpdateView.as_view(), name='profile_update'),
-    path('profile/password/', change_password, name='change_password'),
+    path('profile/change-password/', change_password, name='change_password'),
+    
+    # Device Arrival URLs
+    path('device-arrivals/', DeviceArrivalListView.as_view(), name='device_arrival_list'),
+    path('device-arrivals/add/', DeviceArrivalCreateView.as_view(), name='device_arrival_create'),
+    path('device-arrivals/<int:pk>/edit/', DeviceArrivalUpdateView.as_view(), name='device_arrival_update'),
+    path('device-arrivals/<int:pk>/delete/', DeviceArrivalDeleteView.as_view(), name='device_arrival_delete'),
+    path('device-arrivals/export/', DeviceArrivalExportView.as_view(), name='device_arrival_export'),
+    path('device-arrivals/import/', DeviceArrivalImportView.as_view(), name='device_arrival_import'),
+    
+    # Device Delivery URLs
+    path('device-deliveries/', DeviceDeliveryListView.as_view(), name='device_delivery_list'),
+    path('device-deliveries/add/', DeviceDeliveryCreateView.as_view(), name='device_delivery_create'),
+    path('device-deliveries/<int:pk>/edit/', DeviceDeliveryUpdateView.as_view(), name='device_delivery_update'),
+    path('device-deliveries/<int:pk>/delete/', DeviceDeliveryDeleteView.as_view(), name='device_delivery_delete'),
+    path('device-deliveries/export/', DeviceDeliveryExportView.as_view(), name='device_delivery_export'),
+    path('device-deliveries/import/', DeviceDeliveryImportView.as_view(), name='device_delivery_import'),
+    
+    # Device Security Status URLs
+    path('device-security-status/', DeviceSecurityStatusListView.as_view(), name='device_security_status_list'),
+    path('device-security-status/add/', DeviceSecurityStatusCreateView.as_view(), name='device_security_status_create'),
+    path('device-security-status/<int:pk>/edit/', DeviceSecurityStatusUpdateView.as_view(), name='device_security_status_update'),
+    path('device-security-status/<int:pk>/delete/', DeviceSecurityStatusDeleteView.as_view(), name='device_security_status_delete'),
+    path('device-security-status/export/', DeviceSecurityStatusExportView.as_view(), name='device_security_status_export'),
+    path('device-security-status/import/', DeviceSecurityStatusImportView.as_view(), name='device_security_status_import'),
 ]
+
+# 添加静态文件URL配置
+urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

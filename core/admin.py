@@ -1,40 +1,40 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
-from .models import User, Resource5G
 from import_export.admin import ImportExportModelAdmin
-from .resources import Resource5GResource
+from .models import User, DeviceArrival, DeviceDelivery, DeviceSecurityStatus
 
-from django.contrib import admin
-from django.contrib.auth.admin import UserAdmin
-from .models import User, Resource5G
-
-@admin.register(User)
 class CustomUserAdmin(UserAdmin):
-    list_display = ('username', 'email', 'phone', 'is_active', 'is_staff', 'created_at')
-    list_filter = ('is_active', 'is_staff', 'groups')
-    search_fields = ('username', 'email', 'phone')
-    ordering = ('-created_at',)
-    
-    fieldsets = (
-        (None, {'fields': ('username', 'password')}),
-        ('个人信息', {'fields': ('email', 'phone')}),
-        ('权限', {
-            'fields': ('is_active', 'is_staff', 'is_superuser', 'groups', 'user_permissions'),
-        }),
-        ('重要日期', {'fields': ('last_login', 'date_joined')}),
+    list_display = ('username', 'email', 'first_name', 'last_name', 'is_staff', 'is_active')
+    list_filter = ('is_staff', 'is_active')
+    fieldsets = UserAdmin.fieldsets + (
+        ('Additional Info', {'fields': ('phone',)}),
     )
-    
-    add_fieldsets = (
-        (None, {
-            'classes': ('wide',),
-            'fields': ('username', 'email', 'phone', 'password1', 'password2'),
-        }),
+    add_fieldsets = UserAdmin.add_fieldsets + (
+        ('Additional Info', {'fields': ('phone',)}),
     )
 
-@admin.register(Resource5G)
-class Resource5GAdmin(ImportExportModelAdmin):
-    resource_class = Resource5GResource
-    list_display = ('name', 'resource_type', 'location', 'quantity', 'status', 'user', 'created_at')
-    list_filter = ('resource_type', 'status', 'user')
-    search_fields = ('name', 'description', 'location')
-    ordering = ('-created_at',)
+class DeviceArrivalAdmin(ImportExportModelAdmin):
+    list_display = ('project_name', 'arrival_date', 'device_model', 'barcode', 'created_by')
+    list_filter = ('arrival_date', 'device_model')
+    search_fields = ('project_name', 'device_model', 'barcode')
+    date_hierarchy = 'arrival_date'
+    raw_id_fields = ('created_by',)
+
+class DeviceDeliveryAdmin(ImportExportModelAdmin):
+    list_display = ('delivery_date', 'device_model', 'barcode', 'recipient_unit', 'recipient', 'created_by')
+    list_filter = ('delivery_date', 'device_model', 'recipient_unit')
+    search_fields = ('device_model', 'barcode', 'recipient_unit', 'recipient')
+    date_hierarchy = 'delivery_date'
+    raw_id_fields = ('created_by',)
+
+class DeviceSecurityStatusAdmin(ImportExportModelAdmin):
+    list_display = ('network_element_name', 'is_online', 'asset_serial_number', 'last_check_time', 'created_by')
+    list_filter = ('is_online', 'last_check_time')
+    search_fields = ('network_element_name', 'asset_serial_number')
+    date_hierarchy = 'last_check_time'
+    raw_id_fields = ('created_by',)
+
+admin.site.register(User, CustomUserAdmin)
+admin.site.register(DeviceArrival, DeviceArrivalAdmin)
+admin.site.register(DeviceDelivery, DeviceDeliveryAdmin)
+admin.site.register(DeviceSecurityStatus, DeviceSecurityStatusAdmin)

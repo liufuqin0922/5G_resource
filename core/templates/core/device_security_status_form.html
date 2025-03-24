@@ -1,0 +1,64 @@
+{% extends 'core/base.html' %}
+{% load widget_tweaks %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="card">
+        <div class="card-header">
+            <h2>{% if form.instance.pk %}编辑{% else %}新增{% endif %}设备安装状态</h2>
+        </div>
+        <div class="card-body">
+            <form method="post" enctype="multipart/form-data">
+                {% csrf_token %}
+                
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label for="id_network_element_name">网元名称</label>
+                            {% render_field form.network_element_name class="form-control" placeholder="请输入网元名称" %}
+                            {% if form.network_element_name.errors %}
+                                <div class="text-danger">{{ form.network_element_name.errors }}</div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label for="id_asset_serial_number">资产序列号</label>
+                            {% render_field form.asset_serial_number class="form-control" placeholder="请输入资产序列号" %}
+                            {% if form.asset_serial_number.errors %}
+                                <div class="text-danger">{{ form.asset_serial_number.errors }}</div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label for="id_is_online">是否在线</label>
+                            {% render_field form.is_online class="form-check-input" type="checkbox" %}
+                            {% if form.is_online.errors %}
+                                <div class="text-danger">{{ form.is_online.errors }}</div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label for="id_check_date">检查日期</label>
+                            {% render_field form.check_date class="form-control" type="date" %}
+                            {% if form.check_date.errors %}
+                                <div class="text-danger">{{ form.check_date.errors }}</div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="d-flex gap-2">
+                    <button type="submit" class="btn btn-primary">保存</button>
+                    <a href="{% url 'device_security_status_list' %}" class="btn btn-secondary">取消</a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %} 

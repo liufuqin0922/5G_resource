@@ -37,18 +37,45 @@
                         <div class="col-md-4 mb-3">
                             <div class="card">
                                 <div class="card-body text-center">
-                                    <h5 class="card-title">资源管理</h5>
-                                    <p class="card-text">管理5G网络资源</p>
-                                    <a href="{% url 'resource_list' %}" class="btn btn-primary">进入</a>
+                                    <h5 class="card-title">个人设置</h5>
+                                    <p class="card-text">修改个人信息</p>
+                                    <a href="{% url 'profile_update' %}" class="btn btn-primary">进入</a>
                                 </div>
                             </div>
                         </div>
                         <div class="col-md-4 mb-3">
                             <div class="card">
                                 <div class="card-body text-center">
-                                    <h5 class="card-title">个人设置</h5>
-                                    <p class="card-text">修改个人信息</p>
-                                    <a href="{% url 'profile_update' %}" class="btn btn-primary">进入</a>
+                                    <h5 class="card-title">设备到货清单</h5>
+                                    <p class="card-text">管理设备到货记录</p>
+                                    <a href="{% url 'device_arrival_list' %}" class="btn btn-primary">进入</a>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <div class="card">
+                                <div class="card-body text-center">
+                                    <h5 class="card-title">设备出货清单</h5>
+                                    <p class="card-text">管理设备出货记录</p>
+                                    <a href="{% url 'device_delivery_list' %}" class="btn btn-primary">进入</a>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <div class="card">
+                                <div class="card-body text-center">
+                                    <h5 class="card-title">设备安装状态</h5>
+                                    <p class="card-text">管理设备安装状态</p>
+                                    <a href="{% url 'device_security_status_list' %}" class="btn btn-primary">进入</a>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <div class="card bg-info text-white">
+                                <div class="card-body text-center">
+                                    <h5 class="card-title">设备状态看板</h5>
+                                    <p class="card-text">查看设备入网和脱网统计</p>
+                                    <a href="{% url 'dashboard_status' %}" class="btn btn-light">进入</a>
                                 </div>
                             </div>
                         </div>
