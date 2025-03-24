@@ -42,6 +42,9 @@
                         </a>
                         <ul class="dropdown-menu dropdown-menu-end">
                             <li><a class="dropdown-item" href="{% url 'profile_update' %}"><i class="bi bi-gear"></i> 设置</a></li>
+                            {% if user.is_staff or user.is_superuser %}
+                            <li><a class="dropdown-item" href="{% url 'user_activity_log_list' %}"><i class="bi bi-clock-history"></i> 操作日志</a></li>
+                            {% endif %}
                             <li><hr class="dropdown-divider"></li>
                             <li><a class="dropdown-item" href="{% url 'logout' %}"><i class="bi bi-box-arrow-right"></i> 退出登录</a></li>
                         </ul>

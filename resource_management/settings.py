@@ -63,6 +63,7 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'core.middleware.UserActivityLogMiddleware',  # 用户活动日志中间件
 ]
 
 ROOT_URLCONF = 'resource_management.urls'

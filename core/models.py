@@ -1,5 +1,6 @@
 from django.db import models
 from django.contrib.auth.models import AbstractUser
+from django.utils.translation import gettext_lazy as _
 
 class User(AbstractUser):
     """自定义用户模型"""
@@ -71,3 +72,48 @@ class DeviceSecurityStatus(models.Model):
 
     def __str__(self):
         return f"{self.network_element_name} - {'在线' if self.is_online else '离线'}"
+
+class UserActivityLog(models.Model):
+    """用户操作日志"""
+    ACTION_TYPES = (
+        ('CREATE', '创建'),
+        ('UPDATE', '更新'),
+        ('DELETE', '删除'),
+        ('VIEW', '查看'),
+        ('IMPORT', '导入'),
+        ('EXPORT', '导出'),
+        ('LOGIN', '登录'),
+        ('LOGOUT', '登出'),
+        ('OTHER', '其他'),
+    )
+    
+    CONTENT_TYPES = (
+        ('DEVICE_ARRIVAL', '设备到货'),
+        ('DEVICE_DELIVERY', '设备出货'),
+        ('DEVICE_SECURITY', '安装状态'),
+        ('USER', '用户'),
+        ('SYSTEM', '系统'),
+    )
+    
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='activity_logs', verbose_name='用户')
+    action_type = models.CharField(max_length=20, choices=ACTION_TYPES, verbose_name='操作类型')
+    content_type = models.CharField(max_length=20, choices=CONTENT_TYPES, verbose_name='内容类型')
+    object_id = models.CharField(max_length=50, blank=True, null=True, verbose_name='对象ID')
+    description = models.TextField(verbose_name='操作描述')
+    ip_address = models.GenericIPAddressField(blank=True, null=True, verbose_name='IP地址')
+    user_agent = models.TextField(blank=True, null=True, verbose_name='用户代理')
+    timestamp = models.DateTimeField(auto_now_add=True, verbose_name='时间戳')
+    
+    class Meta:
+        verbose_name = '用户操作日志'
+        verbose_name_plural = verbose_name
+        ordering = ['-timestamp']
+        indexes = [
+            models.Index(fields=['user']),
+            models.Index(fields=['action_type']),
+            models.Index(fields=['content_type']),
+            models.Index(fields=['timestamp']),
+        ]
+    
+    def __str__(self):
+        return f"{self.user.username} - {self.get_action_type_display()} - {self.timestamp}"

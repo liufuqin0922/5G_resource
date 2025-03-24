@@ -53,6 +53,9 @@ from core.views import (
     
     # Dashboard Status view
     DashboardStatusView,
+    
+    # User Activity Log view
+    UserActivityLogListView,
 )
 
 urlpatterns = [
@@ -94,6 +97,9 @@ urlpatterns = [
     path('device-security-status/<int:pk>/delete/', DeviceSecurityStatusDeleteView.as_view(), name='device_security_status_delete'),
     path('device-security-status/export/', DeviceSecurityStatusExportView.as_view(), name='device_security_status_export'),
     path('device-security-status/import/', DeviceSecurityStatusImportView.as_view(), name='device_security_status_import'),
+    
+    # 用户操作日志
+    path('logs/', UserActivityLogListView.as_view(), name='user_activity_log_list'),
 ]
 
 # 添加静态文件URL配置

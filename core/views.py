@@ -1,19 +1,19 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth import login, logout, update_session_auth_hash
-from django.contrib.auth.mixins import LoginRequiredMixin
+from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.forms import AuthenticationForm, PasswordChangeForm
 from django.contrib import messages
-from django.views.generic import TemplateView, ListView, DetailView, CreateView, UpdateView, DeleteView, View
+from django.views.generic import TemplateView, ListView, DetailView, CreateView, UpdateView, DeleteView, View, FormView
 from django import forms
 from django.urls import reverse_lazy
-from django.http import HttpResponse, HttpResponseRedirect
+from django.http import HttpResponse, HttpResponseRedirect, JsonResponse
 from import_export.formats import base_formats
 from tablib import Dataset
 from django.db import models
 from django.utils import timezone
 
-from .models import User, DeviceArrival, DeviceDelivery, DeviceSecurityStatus
+from .models import User, DeviceArrival, DeviceDelivery, DeviceSecurityStatus, UserActivityLog
 from .resources import DeviceArrivalResource, DeviceDeliveryResource, DeviceSecurityStatusResource
 
 # Authentication Views
@@ -785,5 +785,68 @@ class DashboardStatusView(LoginRequiredMixin, TemplateView):
             'device_list': device_list,
             'page_range': range(max(1, page - 2), min(total_pages + 1, page + 3)),
         })
+        
+        return context
+
+class UserActivityLogListView(LoginRequiredMixin, UserPassesTestMixin, ListView):
+    """用户操作日志列表视图，仅管理员可访问"""
+    model = UserActivityLog
+    template_name = 'core/user_activity_log_list.html'
+    context_object_name = 'logs'
+    paginate_by = 50
+    ordering = ['-timestamp']
+    
+    def test_func(self):
+        """检查用户是否是管理员"""
+        return self.request.user.is_staff or self.request.user.is_superuser
+    
+    def get_queryset(self):
+        """根据筛选条件获取查询集"""
+        queryset = super().get_queryset()
+        
+        # 获取筛选参数
+        user_id = self.request.GET.get('user')
+        action_type = self.request.GET.get('action_type')
+        content_type = self.request.GET.get('content_type')
+        start_date = self.request.GET.get('start_date')
+        end_date = self.request.GET.get('end_date')
+        search = self.request.GET.get('search')
+        
+        # 应用筛选
+        if user_id:
+            queryset = queryset.filter(user_id=user_id)
+        if action_type:
+            queryset = queryset.filter(action_type=action_type)
+        if content_type:
+            queryset = queryset.filter(content_type=content_type)
+        if start_date:
+            queryset = queryset.filter(timestamp__date__gte=start_date)
+        if end_date:
+            queryset = queryset.filter(timestamp__date__lte=end_date)
+        if search:
+            queryset = queryset.filter(
+                models.Q(description__icontains=search) |
+                models.Q(user__username__icontains=search) |
+                models.Q(ip_address__icontains=search)
+            )
+        
+        return queryset
+    
+    def get_context_data(self, **kwargs):
+        """添加额外上下文数据"""
+        context = super().get_context_data(**kwargs)
+        
+        # 添加筛选选项
+        context['users'] = User.objects.all()
+        context['action_types'] = UserActivityLog.ACTION_TYPES
+        context['content_types'] = UserActivityLog.CONTENT_TYPES
+        
+        # 保持筛选条件
+        context['selected_user'] = self.request.GET.get('user', '')
+        context['selected_action_type'] = self.request.GET.get('action_type', '')
+        context['selected_content_type'] = self.request.GET.get('content_type', '')
+        context['start_date'] = self.request.GET.get('start_date', '')
+        context['end_date'] = self.request.GET.get('end_date', '')
+        context['search'] = self.request.GET.get('search', '')
         
         return context
