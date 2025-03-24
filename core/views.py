@@ -115,7 +115,7 @@ class DeviceArrivalListView(LoginRequiredMixin, ListView):
     paginate_by = 50  # 设置每页显示50条记录
     
     def get_queryset(self):
-        queryset = DeviceArrival.objects.all() if self.request.user.is_staff else DeviceArrival.objects.filter(created_by=self.request.user)
+        queryset = DeviceArrival.objects.all()  # 所有用户都能看到所有记录
         
         # 搜索功能
         query = self.request.GET.get('q', '')
@@ -211,10 +211,7 @@ class DeviceArrivalExportView(LoginRequiredMixin, View):
     """设备到货清单导出视图"""
     
     def get(self, request, *args, **kwargs):
-        if request.user.is_staff:
-            queryset = DeviceArrival.objects.all()
-        else:
-            queryset = DeviceArrival.objects.filter(created_by=request.user)
+        queryset = DeviceArrival.objects.all()  # 所有用户都能导出所有记录
             
         resource = DeviceArrivalResource()
         dataset = resource.export(queryset)
@@ -294,7 +291,7 @@ class DeviceDeliveryListView(LoginRequiredMixin, ListView):
     paginate_by = 50  # 设置每页显示50条记录
     
     def get_queryset(self):
-        queryset = DeviceDelivery.objects.all() if self.request.user.is_staff else DeviceDelivery.objects.filter(created_by=self.request.user)
+        queryset = DeviceDelivery.objects.all()  # 所有用户都能看到所有记录
         
         # 搜索功能
         query = self.request.GET.get('q', '')
@@ -375,10 +372,7 @@ class DeviceDeliveryExportView(LoginRequiredMixin, View):
     """设备出货清单导出视图"""
     
     def get(self, request, *args, **kwargs):
-        if request.user.is_staff:
-            queryset = DeviceDelivery.objects.all()
-        else:
-            queryset = DeviceDelivery.objects.filter(created_by=request.user)
+        queryset = DeviceDelivery.objects.all()  # 所有用户都能导出所有记录
             
         resource = DeviceDeliveryResource()
         dataset = resource.export(queryset)
