@@ -651,8 +651,8 @@ class DashboardStatusView(LoginRequiredMixin, TemplateView):
         except ValueError:
             page = 1
         
-        # 限制查询的时间范围，只获取最近90天的数据
-        date_limit = timezone.now() - timezone.timedelta(days=90)
+        # 限制查询的时间范围，只获取最近24小时的数据
+        date_limit = timezone.now() - timezone.timedelta(hours=24)
         
         # 只获取必要的字段，减少内存使用
         arrivals = DeviceArrival.objects.filter(
@@ -774,7 +774,7 @@ class DashboardStatusView(LoginRequiredMixin, TemplateView):
             'other_device_list': other_device_list,
             'today': today,
             'is_limited_view': True,
-            'date_range': f"过去90天 ({date_limit.strftime('%Y-%m-%d')} 至今)",
+            'date_range': f"过去24小时 ({date_limit.strftime('%Y-%m-%d %H:%M')} 至今)",
             
             # 分页信息
             'current_page': page,
