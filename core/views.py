@@ -452,7 +452,7 @@ class DeviceSecurityStatusListView(LoginRequiredMixin, ListView):
     paginate_by = 50  # 设置每页显示50条记录
     
     def get_queryset(self):
-        queryset = DeviceSecurityStatus.objects.all() if self.request.user.is_staff else DeviceSecurityStatus.objects.filter(created_by=self.request.user)
+        queryset = DeviceSecurityStatus.objects.all()  # 所有用户都能看到所有记录
         
         # 搜索功能
         query = self.request.GET.get('q', '')
@@ -554,10 +554,7 @@ class DeviceSecurityStatusExportView(LoginRequiredMixin, View):
     """设备安全状态导出视图"""
     
     def get(self, request, *args, **kwargs):
-        if request.user.is_staff:
-            queryset = DeviceSecurityStatus.objects.all()
-        else:
-            queryset = DeviceSecurityStatus.objects.filter(created_by=request.user)
+        queryset = DeviceSecurityStatus.objects.all()  # 所有用户都能导出所有记录
             
         resource = DeviceSecurityStatusResource()
         dataset = resource.export(queryset)
