@@ -112,7 +112,11 @@ class DeviceArrivalListView(LoginRequiredMixin, ListView):
     model = DeviceArrival
     template_name = 'core/device_arrival_list.html'
     context_object_name = 'device_arrivals'
-    paginate_by = 50  # 设置每页显示50条记录
+    paginate_by = 50  # 默认每页显示50条记录
+    
+    def get_paginate_by(self, queryset):
+        """允许用户选择每页显示的记录数"""
+        return self.request.GET.get('per_page', self.paginate_by)
     
     def get_queryset(self):
         queryset = DeviceArrival.objects.all()  # 所有用户都能看到所有记录
@@ -134,6 +138,8 @@ class DeviceArrivalListView(LoginRequiredMixin, ListView):
         context = super().get_context_data(**kwargs)
         # 将搜索关键词加入上下文
         context['query'] = self.request.GET.get('q', '')
+        context['per_page'] = self.request.GET.get('per_page', self.paginate_by)
+        context['per_page_options'] = [10, 20, 50, 100]
         return context
 
 class DeviceArrivalCreateForm(forms.ModelForm):
@@ -288,7 +294,11 @@ class DeviceDeliveryListView(LoginRequiredMixin, ListView):
     model = DeviceDelivery
     template_name = 'core/device_delivery_list.html'
     context_object_name = 'device_deliveries'
-    paginate_by = 50  # 设置每页显示50条记录
+    paginate_by = 50  # 默认每页显示50条记录
+    
+    def get_paginate_by(self, queryset):
+        """允许用户选择每页显示的记录数"""
+        return self.request.GET.get('per_page', self.paginate_by)
     
     def get_queryset(self):
         queryset = DeviceDelivery.objects.all()  # 所有用户都能看到所有记录
@@ -311,6 +321,8 @@ class DeviceDeliveryListView(LoginRequiredMixin, ListView):
         context = super().get_context_data(**kwargs)
         # 将搜索关键词加入上下文
         context['query'] = self.request.GET.get('q', '')
+        context['per_page'] = self.request.GET.get('per_page', self.paginate_by)
+        context['per_page_options'] = [10, 20, 50, 100]
         return context
 
 class DeviceDeliveryCreateForm(forms.ModelForm):
@@ -449,7 +461,11 @@ class DeviceSecurityStatusListView(LoginRequiredMixin, ListView):
     model = DeviceSecurityStatus
     template_name = 'core/device_security_status_list.html'
     context_object_name = 'device_statuses'
-    paginate_by = 50  # 设置每页显示50条记录
+    paginate_by = 50  # 默认每页显示50条记录
+    
+    def get_paginate_by(self, queryset):
+        """允许用户选择每页显示的记录数"""
+        return self.request.GET.get('per_page', self.paginate_by)
     
     def get_queryset(self):
         queryset = DeviceSecurityStatus.objects.all()  # 所有用户都能看到所有记录
@@ -478,6 +494,8 @@ class DeviceSecurityStatusListView(LoginRequiredMixin, ListView):
         # 将搜索关键词和状态筛选加入上下文
         context['query'] = self.request.GET.get('q', '')
         context['status'] = self.request.GET.get('status', '')
+        context['per_page'] = self.request.GET.get('per_page', self.paginate_by)
+        context['per_page_options'] = [10, 20, 50, 100]
         return context
 
 class DeviceSecurityStatusCreateForm(forms.ModelForm):
@@ -629,18 +647,22 @@ class DeviceSecurityStatusImportView(LoginRequiredMixin, TemplateView):
 class DashboardStatusView(LoginRequiredMixin, TemplateView):
     """设备状态看板视图"""
     template_name = 'core/dashboard_status.html'
-    items_per_page = 20  # 每页显示的设备数量
+    items_per_page = 20  # 默认每页显示20条记录
     
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         
-        # 获取当前页码
+        # 获取当前页码和每页记录数
         page = self.request.GET.get('page', 1)
         device_type = self.request.GET.get('type', 'online')  # 默认显示在线设备
+        per_page = self.request.GET.get('per_page', self.items_per_page)
+        
         try:
             page = int(page)
+            per_page = int(per_page)
         except ValueError:
             page = 1
+            per_page = self.items_per_page
         
         # 限制查询的时间范围，只获取最近24小时的数据
         date_limit = timezone.now() - timezone.timedelta(hours=24)
@@ -690,7 +712,7 @@ class DashboardStatusView(LoginRequiredMixin, TemplateView):
             
         # 计算总页数
         total_devices = len(all_devices)
-        total_pages = (total_devices + self.items_per_page - 1) // self.items_per_page
+        total_pages = (total_devices + per_page - 1) // per_page
         
         # 确保页码有效
         if page < 1:
@@ -699,8 +721,8 @@ class DashboardStatusView(LoginRequiredMixin, TemplateView):
             page = total_pages
             
         # 计算当前页的设备
-        start_idx = (page - 1) * self.items_per_page
-        end_idx = start_idx + self.items_per_page
+        start_idx = (page - 1) * per_page
+        end_idx = start_idx + per_page
         current_page_devices = all_devices[start_idx:end_idx]
         
         # 生成当前设备列表
@@ -775,6 +797,8 @@ class DashboardStatusView(LoginRequiredMixin, TemplateView):
             'device_label': device_label,
             'device_list': device_list,
             'page_range': range(max(1, page - 2), min(total_pages + 1, page + 3)),
+            'per_page': per_page,
+            'per_page_options': [10, 20, 50, 100],
         })
         
         return context
@@ -784,8 +808,12 @@ class UserActivityLogListView(LoginRequiredMixin, UserPassesTestMixin, ListView)
     model = UserActivityLog
     template_name = 'core/user_activity_log_list.html'
     context_object_name = 'logs'
-    paginate_by = 50
+    paginate_by = 50  # 默认每页显示50条记录
     ordering = ['-timestamp']
+    
+    def get_paginate_by(self, queryset):
+        """允许用户选择每页显示的记录数"""
+        return self.request.GET.get('per_page', self.paginate_by)
     
     def test_func(self):
         """检查用户是否是管理员"""
@@ -839,5 +867,7 @@ class UserActivityLogListView(LoginRequiredMixin, UserPassesTestMixin, ListView)
         context['start_date'] = self.request.GET.get('start_date', '')
         context['end_date'] = self.request.GET.get('end_date', '')
         context['search'] = self.request.GET.get('search', '')
+        context['per_page'] = self.request.GET.get('per_page', self.paginate_by)
+        context['per_page_options'] = [10, 20, 50, 100]
         
         return context

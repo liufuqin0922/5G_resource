@@ -68,16 +68,33 @@
             <h4>设备分类查看</h4>
         </div>
         <div class="card-body">
-            <div class="btn-group mb-3" role="group">
-                <a href="?type=online" class="btn btn-{% if device_type == 'online' %}primary{% else %}outline-primary{% endif %}">
-                    在线设备 ({{ online_count }})
-                </a>
-                <a href="?type=offline" class="btn btn-{% if device_type == 'offline' %}danger{% else %}outline-danger{% endif %}">
-                    脱网设备 ({{ offline_count }})
-                </a>
-                <a href="?type=other" class="btn btn-{% if device_type == 'other' %}warning{% else %}outline-warning{% endif %}">
-                    其他设备 ({{ other_count }})
-                </a>
+            <div class="row mb-3">
+                <div class="col-md-8">
+                    <div class="btn-group mb-3" role="group">
+                        <a href="?type=online" class="btn btn-{% if device_type == 'online' %}primary{% else %}outline-primary{% endif %}">
+                            在线设备 ({{ online_count }})
+                        </a>
+                        <a href="?type=offline" class="btn btn-{% if device_type == 'offline' %}danger{% else %}outline-danger{% endif %}">
+                            脱网设备 ({{ offline_count }})
+                        </a>
+                        <a href="?type=other" class="btn btn-{% if device_type == 'other' %}warning{% else %}outline-warning{% endif %}">
+                            其他设备 ({{ other_count }})
+                        </a>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="d-flex align-items-center justify-content-end">
+                        <span class="me-2">每页显示:</span>
+                        <div class="btn-group" role="group">
+                            {% for option in per_page_options %}
+                            <a href="?type={{ device_type }}{% if page %}&page={{ page }}{% endif %}&per_page={{ option }}" 
+                               class="btn btn-sm {% if per_page|stringformat:'i' == option|stringformat:'i' %}btn-primary{% else %}btn-outline-primary{% endif %}">
+                                {{ option }}
+                            </a>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
             </div>
             
             <h5>{{ device_label }} (共 {{ total_devices }} 台)</h5>
@@ -165,10 +182,10 @@
                 <ul class="pagination justify-content-center">
                     {% if current_page > 1 %}
                         <li class="page-item">
-                            <a class="page-link" href="?type={{ device_type }}&page=1">首页</a>
+                            <a class="page-link" href="?type={{ device_type }}&page=1{% if per_page %}&per_page={{ per_page }}{% endif %}">首页</a>
                         </li>
                         <li class="page-item">
-                            <a class="page-link" href="?type={{ device_type }}&page={{ current_page|add:"-1" }}">上一页</a>
+                            <a class="page-link" href="?type={{ device_type }}&page={{ current_page|add:"-1" }}{% if per_page %}&per_page={{ per_page }}{% endif %}">上一页</a>
                         </li>
                     {% else %}
                         <li class="page-item disabled">
@@ -186,17 +203,17 @@
                             </li>
                         {% else %}
                             <li class="page-item">
-                                <a class="page-link" href="?type={{ device_type }}&page={{ page_num }}">{{ page_num }}</a>
+                                <a class="page-link" href="?type={{ device_type }}&page={{ page_num }}{% if per_page %}&per_page={{ per_page }}{% endif %}">{{ page_num }}</a>
                             </li>
                         {% endif %}
                     {% endfor %}
                     
                     {% if current_page < total_pages %}
                         <li class="page-item">
-                            <a class="page-link" href="?type={{ device_type }}&page={{ current_page|add:"1" }}">下一页</a>
+                            <a class="page-link" href="?type={{ device_type }}&page={{ current_page|add:"1" }}{% if per_page %}&per_page={{ per_page }}{% endif %}">下一页</a>
                         </li>
                         <li class="page-item">
-                            <a class="page-link" href="?type={{ device_type }}&page={{ total_pages }}">末页</a>
+                            <a class="page-link" href="?type={{ device_type }}&page={{ total_pages }}{% if per_page %}&per_page={{ per_page }}{% endif %}">末页</a>
                         </li>
                     {% else %}
                         <li class="page-item disabled">
@@ -208,13 +225,13 @@
                     {% endif %}
                 </ul>
                 <p class="text-center">
-                    总共 {{ total_devices }} 台设备，共 {{ total_pages }} 页
+                    显示 {{ device_list|length }} 条记录，共 {{ total_devices }} 条
                 </p>
             </nav>
             {% endif %}
             {% else %}
-            <div class="alert alert-warning">
-                没有找到匹配的设备数据
+            <div class="alert alert-info">
+                当前类别没有设备记录
             </div>
             {% endif %}
         </div>
